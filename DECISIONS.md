@@ -31,6 +31,13 @@ exception, logged with its traceback. Counted, logged and skipped: a single deco
 exception (WARNING with traceback), a frame with no usable boundary (DEBUG). The prototype's bare `except`
 around polygon derivation is gone; a malformed mask is now a counted frame error, not a silent "no boundary".
 
+Aggregation: every inspected frame lands in one bucket, valid or a rejection reason (decode failed, detector
+failed, no boundary, invalid geometry, too large). Area and coverage statistics use valid frames only. The
+final output is a `RunSummary`: the counts, the statistics, and one representative boundary, the valid
+polygon of median area. With no valid frames the statistics are null, not zero. `max_coverage` rejects a
+boundary that fills more of the frame than a pitch can; it is 1.0 here because the placeholder detector
+returns the whole frame, and the summary's coverage of 1.0 is the number that tells an operator so.
+
 ## 3. Performance trade-offs
 
 Synthetic feed, 1280x720 at 30 fps, single run each:

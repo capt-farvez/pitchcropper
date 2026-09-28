@@ -2,6 +2,7 @@
 # An unknown key, a missing key, or a value out of range stops the run before any video is opened.
 
 video_path: synthetic_pitch_feed.mp4
+output_path: run_summary.json   # final result as JSON; null to skip
 confidence_threshold: 0.5
 
 sampling:
@@ -13,6 +14,8 @@ field_detector:
   type: hsv_mask        # which detector implementation to use
   sport: football
   min_area: 1000        # smallest contour area in px^2 (at full resolution) accepted as a boundary
+  max_coverage: 1.0     # largest share of the frame a boundary may cover; the placeholder detector returns
+                        # the whole green frame, so 1.0 here. A real detector would sit nearer 0.9.
 
 crop_search:
   aspect_ratio: "16:9"

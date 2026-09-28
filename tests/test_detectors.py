@@ -13,7 +13,7 @@ GREEN_BGR = (34, 139, 34)
 
 
 def detector_config(**overrides) -> DetectorConfig:
-    data = {"type": "hsv_mask", "sport": "football", "min_area": 1000, **overrides}
+    data = {**VALID_CONFIG["field_detector"], **overrides}
     return DetectorConfig.model_validate(data)
 
 
@@ -70,6 +70,7 @@ def test_analyzer_uses_whatever_detector_it_is_given(make_video):
     with_none = FieldBoundaryAnalyzer(cfg, NeverDetects()).process_video(short_video)
     with_refusal = FieldBoundaryAnalyzer(cfg, RefusesToDetect()).process_video(short_video)
 
-    assert len(with_real) > 0
-    assert with_none == []
-    assert with_refusal == []
+    assert with_real.valid > 0
+    assert with_none.valid == 0
+    assert with_refusal.valid == 0
+    assert with_refusal.inspected == 30  # every frame was still looked at and counted

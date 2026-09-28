@@ -26,6 +26,9 @@ class DetectorConfig(_Strict):
     type: Literal["hsv_mask"]
     sport: str = Field(min_length=1)
     min_area: int = Field(gt=0, description="Smallest contour area (px^2) accepted as a boundary")
+    max_coverage: float = Field(
+        gt=0.0, le=1.0, description="Largest share of the frame a boundary may cover and still count as a pitch"
+    )
 
 
 class CropConfig(_Strict):
@@ -53,6 +56,7 @@ class ResilienceConfig(_Strict):
 
 class PipelineConfig(_Strict):
     video_path: str = Field(min_length=1)
+    output_path: str | None = Field(min_length=1, description="Write the run summary as JSON here; null to skip")
     confidence_threshold: float = Field(ge=0.0, le=1.0)
     sampling: SamplingConfig
     field_detector: DetectorConfig

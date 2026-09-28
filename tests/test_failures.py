@@ -73,8 +73,8 @@ def test_one_bad_frame_is_counted_not_fatal(make_video, capsys):
 
     done = [e for e in events(capsys) if e["event"] == "run.done"][0]
     assert done["inspected"] == 30
-    assert done["errored"] == 1
-    assert len(results) == 29
+    assert done["rejected"] == {"detect_failed": 1}
+    assert results.valid == 29
 
 
 def test_bad_frame_is_logged_with_traceback(make_video, capsys):
@@ -111,10 +111,10 @@ def test_malformed_mask_from_detector_is_counted(make_video, capsys):
     video = make_video(5)
     cfg = config_for(video)
     configure_logging("INFO", "r")
-    FieldBoundaryAnalyzer(cfg, BadMaskDtype()).process_video(video)
-    done = [e for e in events(capsys) if e["event"] == "run.done"][0]
-    assert done["errored"] == 5
-    assert done["found"] == 0
+    summary = FieldBoundaryAnalyzer(cfg, BadMaskDtype()).process_video(video)
+    assert summary.rejected["detect_failed"] == 5
+    assert summary.valid == 0
+    assert summary.boundary is None
 
 
 def test_main_exits_1_when_video_cannot_be_opened(tmp_path, capsys):

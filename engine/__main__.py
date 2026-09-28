@@ -15,6 +15,7 @@ Exit codes:
 import argparse
 import logging
 import sys
+from pathlib import Path
 
 from synthetic_generator import generate_synthetic_video
 
@@ -55,7 +56,11 @@ def main(argv: list[str] | None = None) -> int:
         log.info("input.ready", extra={"video_path": config.video_path})
 
         analyzer = FieldBoundaryAnalyzer(config, detector)
-        results = analyzer.process_video(config.video_path)
+        summary = analyzer.process_video(config.video_path)
+
+        if config.output_path is not None:
+            Path(config.output_path).write_text(summary.model_dump_json(indent=2), encoding="utf-8")
+            log.info("output.written", extra={"output_path": config.output_path})
     except PipelineError as exc:
         # a known way for a run to fail: say which, exit 1
         log.error("run.failed", extra={"reason": type(exc).__name__, "detail": str(exc), "exit_code": 1})
@@ -65,7 +70,7 @@ def main(argv: list[str] | None = None) -> int:
         log.exception("run.crashed", extra={"exit_code": 1})
         return 1
 
-    log.info("run.finished", extra={"exit_code": 0, "results": len(results)})
+    log.info("run.finished", extra={"exit_code": 0, "valid": summary.valid, "inspected": summary.inspected})
     return 0
 
 

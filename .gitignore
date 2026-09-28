@@ -221,4 +221,7 @@ __marimo__/
 *.mp4
 .idea/
 .vscode/
+
+# Run output
+run_summary.json
 ASSIGNMENT.md
