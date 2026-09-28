@@ -1,20 +1,18 @@
 """Field boundary analysis.
 
-Walks a video, asks the detector for a field mask per frame, derives a
-boundary polygon from that mask and records a spatial metric for it. The
-analyzer does not know which detector it is given; that is the seam that
-varies by sport and deployment. Sampling and error handling follow in
-later commits.
+Walks the sampled frames of a video, asks the detector for a field mask per
+frame, derives a boundary polygon from that mask and records a spatial metric
+for it. The analyzer does not know which detector it is given; that is the
+seam that varies by sport and deployment. Error handling and aggregation
+follow in later commits.
 """
 
-import time
-
 import cv2
-import numpy as np
-from shapely.geometry import Polygon
 
 from engine.config import PipelineConfig
 from engine.detectors.base import FieldDetector
+from engine.geometry import frame_bounds, polygon_from_mask, upscale
+from engine.sampling import compute_stride, iter_sampled_frames, probe_video
 
 
 class FieldBoundaryAnalyzer:
@@ -23,6 +21,7 @@ class FieldBoundaryAnalyzer:
         self.detector = detector
         self.threshold = config.confidence_threshold
         self.min_area = config.field_detector.min_area
+        self.sampling = config.sampling
 
     def process_video(self, video_path: str):
         print(f"Starting processing for video: {video_path}")
@@ -32,40 +31,37 @@ class FieldBoundaryAnalyzer:
             print("Error: Could not open video stream.")
             return
 
-        frame_count = 0
+        info = probe_video(cap)
+        stride = compute_stride(info.fps, self.sampling.analysis_fps)
+        bounds = frame_bounds(info.width, info.height)
+
+        # Detection runs on a shrunken frame when downscale > 1. Areas shrink by
+        # the square of the factor, so the threshold is scaled to match, and the
+        # resulting polygon is mapped back to full-resolution coordinates.
+        factor = self.sampling.downscale
+        small_size = (info.width // factor, info.height // factor)
+        min_area_small = self.min_area / (factor * factor)
+
+        inspected = 0
         detected_polygons = []
 
-        while True:
-            ret, frame = cap.read()
-            if not ret:
-                break
+        for index, frame in iter_sampled_frames(cap, stride, self.sampling.max_frames):
+            inspected += 1
 
-            frame_count += 1
+            if factor > 1:
+                frame = cv2.resize(frame, small_size, interpolation=cv2.INTER_AREA)
 
             mask = self.detector.detect(frame)
-            poly = self._derive_polygon_from_mask(mask) if mask is not None else None
+            poly = polygon_from_mask(mask, min_area_small) if mask is not None else None
 
             if poly and poly.is_valid:
-                outer_boundary = Polygon([(0, 0), (1280, 0), (1280, 720), (0, 720)])
-                intersection_area = poly.intersection(outer_boundary).area
-                detected_polygons.append((frame_count, poly, intersection_area))
-
-            # Simulate heavy per-frame processing latency
-            time.sleep(0.005)
+                poly = upscale(poly, factor)
+                intersection_area = poly.intersection(bounds).area
+                detected_polygons.append((index, poly, intersection_area))
 
         cap.release()
-        print(f"Processed {frame_count} frames. Found {len(detected_polygons)} boundaries.")
+        print(
+            f"Inspected {inspected} of {info.frame_count} frames "
+            f"(stride {stride}, {info.fps:g} fps source). Found {len(detected_polygons)} boundaries."
+        )
         return detected_polygons
-
-    def _derive_polygon_from_mask(self, mask: np.ndarray):
-        try:
-            contours, _ = cv2.findContours(mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
-            if contours:
-                largest = max(contours, key=cv2.contourArea)
-                if cv2.contourArea(largest) > self.min_area:
-                    pts = largest.reshape(-1, 2)
-                    if len(pts) >= 3:
-                        return Polygon(pts)
-        except Exception:
-            pass
-        return None

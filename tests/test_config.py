@@ -5,15 +5,7 @@ import yaml
 
 from engine.config import PipelineConfig, load_config
 from engine.errors import ConfigError
-
-VALID = {
-    "video_path": "feed.mp4",
-    "target_fps": 30,
-    "confidence_threshold": 0.5,
-    "field_detector": {"type": "hsv_mask", "sport": "football", "min_area": 1000},
-    "crop_search": {"aspect_ratio": "16:9", "padding_px": 20},
-    "debug_mode": True,
-}
+from tests.conftest import VALID_CONFIG as VALID
 
 
 def write(tmp_path, data, name="config.yaml"):
@@ -63,8 +55,14 @@ def test_out_of_range_value_is_rejected(tmp_path):
 
 
 def test_wrong_type_is_rejected(tmp_path):
-    data = {**VALID, "target_fps": "fast"}
-    with pytest.raises(ConfigError, match="target_fps"):
+    data = {**VALID, "confidence_threshold": "high"}
+    with pytest.raises(ConfigError, match="confidence_threshold"):
+        load_config(write(tmp_path, data))
+
+
+def test_nested_out_of_range_value_names_its_path(tmp_path):
+    data = {**VALID, "sampling": {**VALID["sampling"], "analysis_fps": 0}}
+    with pytest.raises(ConfigError, match="sampling.analysis_fps"):
         load_config(write(tmp_path, data))
 
 
@@ -75,9 +73,9 @@ def test_unknown_detector_type_is_rejected(tmp_path):
 
 
 def test_error_message_lists_every_problem(tmp_path):
-    data = {**VALID, "target_fps": -1, "debug_mode": "maybe"}
+    data = {**VALID, "confidence_threshold": 5, "debug_mode": "maybe"}
     with pytest.raises(ConfigError) as info:
         load_config(write(tmp_path, data))
     message = str(info.value)
-    assert "target_fps" in message
+    assert "confidence_threshold" in message
     assert "debug_mode" in message

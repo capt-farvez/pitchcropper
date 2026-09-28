@@ -7,7 +7,7 @@ from engine.analyzer import FieldBoundaryAnalyzer
 from engine.config import DetectorConfig, PipelineConfig
 from engine.detectors import HsvMaskDetector, build_detector
 from engine.errors import ConfigError
-from synthetic_generator import generate_synthetic_video
+from tests.conftest import VALID_CONFIG
 
 GREEN_BGR = (34, 139, 34)
 
@@ -18,16 +18,9 @@ def detector_config(**overrides) -> DetectorConfig:
 
 
 def pipeline_config(video_path: str) -> PipelineConfig:
-    return PipelineConfig.model_validate(
-        {
-            "video_path": video_path,
-            "target_fps": 30,
-            "confidence_threshold": 0.5,
-            "field_detector": {"type": "hsv_mask", "sport": "football", "min_area": 1000},
-            "crop_search": {"aspect_ratio": "16:9", "padding_px": 20},
-            "debug_mode": False,
-        }
-    )
+    # inspect every frame so the short test video yields detections
+    sampling = {**VALID_CONFIG["sampling"], "analysis_fps": 30}
+    return PipelineConfig.model_validate({**VALID_CONFIG, "video_path": video_path, "sampling": sampling})
 
 
 def test_build_detector_returns_registered_implementation():
@@ -69,14 +62,8 @@ class RefusesToDetect:
         return None
 
 
-@pytest.fixture(scope="module")
-def short_video(tmp_path_factory):
-    path = tmp_path_factory.mktemp("video") / "short.mp4"
-    generate_synthetic_video(str(path), numFrames=30)
-    return str(path)
-
-
-def test_analyzer_uses_whatever_detector_it_is_given(short_video):
+def test_analyzer_uses_whatever_detector_it_is_given(make_video):
+    short_video = make_video(30)
     cfg = pipeline_config(short_video)
 
     with_real = FieldBoundaryAnalyzer(cfg, build_detector(cfg.field_detector)).process_video(short_video)

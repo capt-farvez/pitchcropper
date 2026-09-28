@@ -77,6 +77,23 @@ Generates the synthetic feed if missing, then processes it. Details in
 | `engine/` | The pipeline library. `python -m engine` is the entry point. |
 | `config.yaml` | Pipeline settings. Validated at startup; any bad value stops the run with exit code 2. |
 | `tests/` | pytest suite. Run with `pytest -q`. |
+
+## Performance
+
+Only every n-th frame is analysed, where n comes from the source frame rate and `sampling.analysis_fps`.
+Skipped frames are advanced with `cap.grab()` and never reach the detector. Measured on the synthetic feed
+(1280x720, 30 fps), same machine, single run:
+
+| Run | Time |
+|---|---|
+| Prototype, 60 s video, every frame | 17.1 s |
+| Engine, 60 s video, every frame (`analysis_fps: 30`) | 6.4 s |
+| Engine, 60 s video, `analysis_fps: 2` | 0.8 s |
+| Engine, 120 s video, `analysis_fps: 2` | 1.7 s |
+
+Detection cost now follows the inspected frame count. The remaining per-frame cost is the codec decoding
+skipped frames, which is why a video twice as long still takes about twice as long at the same setting. To
+bound a run outright, set `sampling.max_frames`.
 | `synthetic_generator.py` | Produces the synthetic match feed used as input. |
 | `mock_api/` | Stand-in for the platform reporting service. Not modified. |
 | `Dockerfile`, `docker-compose.yml` | Container build for the runner and the mock API. |

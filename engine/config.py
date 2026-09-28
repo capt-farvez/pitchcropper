@@ -33,10 +33,16 @@ class CropConfig(_Strict):
     padding_px: int = Field(ge=0)
 
 
+class SamplingConfig(_Strict):
+    analysis_fps: float = Field(gt=0, description="How many frames per second of video to inspect")
+    max_frames: int | None = Field(gt=0, description="Stop after this many inspected frames; null for no cap")
+    downscale: int = Field(ge=1, description="Shrink frames by this factor before detection; 1 keeps full size")
+
+
 class PipelineConfig(_Strict):
     video_path: str = Field(min_length=1)
-    target_fps: float = Field(gt=0)
     confidence_threshold: float = Field(ge=0.0, le=1.0)
+    sampling: SamplingConfig
     field_detector: DetectorConfig
     crop_search: CropConfig
     debug_mode: bool

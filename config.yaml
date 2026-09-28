@@ -2,13 +2,17 @@
 # An unknown key, a missing key, or a value out of range stops the run before any video is opened.
 
 video_path: synthetic_pitch_feed.mp4
-target_fps: 30
 confidence_threshold: 0.5
+
+sampling:
+  analysis_fps: 2       # frames per second of video to inspect; the rest are skipped without analysis
+  max_frames: null      # stop after this many inspected frames; null means the whole video
+  downscale: 1          # shrink frames by this factor before detection; 1 keeps full resolution
 
 field_detector:
   type: hsv_mask        # which detector implementation to use
   sport: football
-  min_area: 1000        # smallest contour area in px^2 accepted as a boundary
+  min_area: 1000        # smallest contour area in px^2 (at full resolution) accepted as a boundary
 
 crop_search:
   aspect_ratio: "16:9"
