@@ -17,6 +17,7 @@ from synthetic_generator import generate_synthetic_video
 
 from engine.analyzer import FieldBoundaryAnalyzer
 from engine.config import load_config
+from engine.detectors import build_detector
 from engine.errors import ConfigError
 
 
@@ -31,6 +32,7 @@ def main(argv: list[str] | None = None) -> int:
 
     try:
         config = load_config(args.config)
+        detector = build_detector(config.field_detector)
     except ConfigError as exc:
         print(f"CONFIG ERROR: {exc}", file=sys.stderr)
         return 2
@@ -38,7 +40,7 @@ def main(argv: list[str] | None = None) -> int:
     # Generate the input feed if it does not exist locally
     generate_synthetic_video(config.video_path)
 
-    analyzer = FieldBoundaryAnalyzer(config)
+    analyzer = FieldBoundaryAnalyzer(config, detector)
     results = analyzer.process_video(config.video_path)
     print(f"Pipeline finished with {len(results) if results else 0} results.")
     return 0

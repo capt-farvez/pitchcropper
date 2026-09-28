@@ -1,8 +1,10 @@
-"""Field boundary analysis, lifted out of the research prototype.
+"""Field boundary analysis.
 
-Reads its settings from the validated PipelineConfig, so there are no
-defaults hidden in this module. The detector seam, sampling and error
-handling follow in later commits.
+Walks a video, asks the detector for a field mask per frame, derives a
+boundary polygon from that mask and records a spatial metric for it. The
+analyzer does not know which detector it is given; that is the seam that
+varies by sport and deployment. Sampling and error handling follow in
+later commits.
 """
 
 import time
@@ -12,12 +14,13 @@ import numpy as np
 from shapely.geometry import Polygon
 
 from engine.config import PipelineConfig
+from engine.detectors.base import FieldDetector
 
 
 class FieldBoundaryAnalyzer:
-    def __init__(self, config: PipelineConfig):
+    def __init__(self, config: PipelineConfig, detector: FieldDetector):
         self.config = config
-        self.sport = config.field_detector.sport
+        self.detector = detector
         self.threshold = config.confidence_threshold
         self.min_area = config.field_detector.min_area
 
@@ -39,8 +42,8 @@ class FieldBoundaryAnalyzer:
 
             frame_count += 1
 
-            mask = self._extract_mask(frame)
-            poly = self._derive_polygon_from_mask(mask)
+            mask = self.detector.detect(frame)
+            poly = self._derive_polygon_from_mask(mask) if mask is not None else None
 
             if poly and poly.is_valid:
                 outer_boundary = Polygon([(0, 0), (1280, 0), (1280, 720), (0, 720)])
@@ -53,13 +56,6 @@ class FieldBoundaryAnalyzer:
         cap.release()
         print(f"Processed {frame_count} frames. Found {len(detected_polygons)} boundaries.")
         return detected_polygons
-
-    def _extract_mask(self, frame: np.ndarray) -> np.ndarray:
-        # Dummy mask generation based on green color thresholding
-        hsv = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
-        lower_green = np.array([35, 40, 40])
-        upper_green = np.array([85, 255, 255])
-        return cv2.inRange(hsv, lower_green, upper_green)
 
     def _derive_polygon_from_mask(self, mask: np.ndarray):
         try:
