@@ -39,7 +39,7 @@ Writes `synthetic_pitch_feed.mp4` to the repo root. The file is git-ignored.
 ## 4. Run the pipeline
 
 ```bash
-python synthetic_field_prototype.py
+python -m engine
 ```
 
 Generates the video if it is missing, then processes it and prints the frame and boundary counts.

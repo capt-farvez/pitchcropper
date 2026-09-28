@@ -64,7 +64,7 @@ python -m venv .venv
 # source .venv/bin/activate         # macOS / Linux
 pip install -r requirements.txt
 python -c "from synthetic_generator import generate_synthetic_video; generate_synthetic_video()"
-python synthetic_field_prototype.py
+python -m engine
 ```
 
 Generates the synthetic feed if missing, then processes it. Details in
@@ -74,7 +74,7 @@ Generates the synthetic feed if missing, then processes it. Details in
 
 | Path | Purpose |
 |---|---|
-| `synthetic_field_prototype.py` | Pipeline entry point (research prototype). |
+| `engine/` | The pipeline library. `python -m engine` is the entry point. |
 | `synthetic_generator.py` | Produces the synthetic match feed used as input. |
 | `mock_api/` | Stand-in for the platform reporting service. Not modified. |
 | `Dockerfile`, `docker-compose.yml` | Container build for the runner and the mock API. |

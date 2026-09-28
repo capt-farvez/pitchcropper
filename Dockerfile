@@ -14,4 +14,4 @@ COPY . .
 
 ENV PYTHONUNBUFFERED=1
 
-CMD ["python", "synthetic_field_prototype.py"]
+CMD ["python", "-m", "engine"]
