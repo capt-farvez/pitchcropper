@@ -1,6 +1,12 @@
-⚠️ **STATUS: PROOF OF CONCEPT — DO NOT DEPLOY TO PRODUCTION** ⚠️
-
 # Automated Pitch Boundary & Camera Crop Engine (Prototype)
+
+## Setup guides
+
+| Guide | Use it when |
+|---|---|
+| [Run with Docker](docs/project-setup-docker.md) | You just want it running. One command, nothing to install. |
+| [Run locally with a venv](docs/project-setup-local-venv.md) | You want to edit and run the code directly. |
+| [Assignment brief](ASSIGNMENT.md) | You want the original task this repo answers. |
 
 ## Overview
 
@@ -27,18 +33,49 @@ approach before it gets built out into a production pipeline.
   step (not yet implemented in this prototype).
 - **Execution Metrics:** Reports how many frames were processed and how many boundaries were found.
 
-## Installation
+## Quick start
 
-Ensure you have a virtual environment set up, then install the dependencies:
+All commands run from the repo root.
+
+### With Docker
+
+Requires Docker Desktop, nothing else.
 
 ```bash
-pip install -r requirements.txt
+# Build the runner and mock API containers, then run the pipeline over a generated synthetic feed
+docker compose up --build
 ```
 
-## Usage
+```bash
+# Run the pipeline over a generated synthetic feed
+docker compose run --rm --no-deps runner python -c "from synthetic_generator import generate_synthetic_video; generate_synthetic_video()"
+```
 
-To run the pipeline with a generated synthetic feed, execute the entry point:
+Starts `mock_api` on `http://localhost:5000` and runs the pipeline in the `runner` container over a
+generated synthetic feed. check `http://localhost:5000/api/v1/jobs/events` for the events. Details in [Run with Docker](docs/project-setup-docker.md).
+
+### Locally with a venv
+
+Requires Python 3.11 or newer.
 
 ```bash
+python -m venv .venv
+.venv\Scripts\Activate.ps1          # Windows PowerShell
+# source .venv/bin/activate         # macOS / Linux
+pip install -r requirements.txt
+python -c "from synthetic_generator import generate_synthetic_video; generate_synthetic_video()"
 python synthetic_field_prototype.py
 ```
+
+Generates the synthetic feed if missing, then processes it. Details in
+[Run locally with a venv](docs/project-setup-local-venv.md).
+
+## Repository layout
+
+| Path | Purpose |
+|---|---|
+| `synthetic_field_prototype.py` | Pipeline entry point (research prototype). |
+| `synthetic_generator.py` | Produces the synthetic match feed used as input. |
+| `mock_api/` | Stand-in for the platform reporting service. Not modified. |
+| `Dockerfile`, `docker-compose.yml` | Container build for the runner and the mock API. |
+| `docs/` | Setup guides. |
