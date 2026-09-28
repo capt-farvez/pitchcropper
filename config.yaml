@@ -18,4 +18,7 @@ crop_search:
   aspect_ratio: "16:9"
   padding_px: 20
 
-debug_mode: true
+logging:
+  level: INFO           # DEBUG logs every skipped frame and its reason
+  format: text          # text for a person at a terminal, json for batch runs and log collectors
+  progress_every: 50    # emit a progress record every N inspected frames

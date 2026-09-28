@@ -10,7 +10,7 @@ VALID_CONFIG = {
     "sampling": {"analysis_fps": 2, "max_frames": None, "downscale": 1},
     "field_detector": {"type": "hsv_mask", "sport": "football", "min_area": 1000},
     "crop_search": {"aspect_ratio": "16:9", "padding_px": 20},
-    "debug_mode": True,
+    "logging": {"level": "INFO", "format": "json", "progress_every": 50},
 }
 
 

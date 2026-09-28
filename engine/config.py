@@ -39,13 +39,19 @@ class SamplingConfig(_Strict):
     downscale: int = Field(ge=1, description="Shrink frames by this factor before detection; 1 keeps full size")
 
 
+class LoggingConfig(_Strict):
+    level: Literal["DEBUG", "INFO", "WARNING", "ERROR"]
+    format: Literal["json", "text"]
+    progress_every: int = Field(gt=0, description="Emit a progress record every N inspected frames")
+
+
 class PipelineConfig(_Strict):
     video_path: str = Field(min_length=1)
     confidence_threshold: float = Field(ge=0.0, le=1.0)
     sampling: SamplingConfig
     field_detector: DetectorConfig
     crop_search: CropConfig
-    debug_mode: bool
+    logging: LoggingConfig
 
 
 def load_config(path: str | Path) -> PipelineConfig:

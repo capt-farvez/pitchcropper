@@ -73,9 +73,10 @@ def test_unknown_detector_type_is_rejected(tmp_path):
 
 
 def test_error_message_lists_every_problem(tmp_path):
-    data = {**VALID, "confidence_threshold": 5, "debug_mode": "maybe"}
+    data = {**VALID, "confidence_threshold": 5, "logging": {**VALID["logging"], "level": "LOUD"}}
+    # two independent problems, both must appear in the one message
     with pytest.raises(ConfigError) as info:
         load_config(write(tmp_path, data))
     message = str(info.value)
     assert "confidence_threshold" in message
-    assert "debug_mode" in message
+    assert "logging.level" in message
