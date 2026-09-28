@@ -1,0 +1,13 @@
+.git
+.gitignore
+.venv
+venv
+__pycache__
+*.pyc
+*.mp4
+.pytest_cache
+.idea
+.vscode
+docs
+mock_api
+ASSIGNMENT.md
