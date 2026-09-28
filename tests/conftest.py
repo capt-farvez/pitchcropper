@@ -11,6 +11,7 @@ VALID_CONFIG = {
     "field_detector": {"type": "hsv_mask", "sport": "football", "min_area": 1000},
     "crop_search": {"aspect_ratio": "16:9", "padding_px": 20},
     "logging": {"level": "INFO", "format": "json", "progress_every": 50},
+    "resilience": {"max_consecutive_frame_errors": 10},
 }
 
 

@@ -19,18 +19,21 @@ def frame_bounds(width: int, height: int) -> Polygon:
 
 
 def polygon_from_mask(mask: np.ndarray, min_area: float) -> Polygon | None:
-    """Largest external contour of the mask as a polygon, or None if there is none large enough."""
-    try:
-        contours, _ = cv2.findContours(mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
-        if contours:
-            largest = max(contours, key=cv2.contourArea)
-            if cv2.contourArea(largest) > min_area:
-                pts = largest.reshape(-1, 2)
-                if len(pts) >= 3:
-                    return Polygon(pts)
-    except Exception:
-        pass
-    return None
+    """Largest external contour of the mask as a polygon, or None if there is none large enough.
+
+    Raises on a malformed mask (wrong dtype or shape). The prototype swallowed
+    that with a bare except; the analyzer now decides what a failure means.
+    """
+    contours, _ = cv2.findContours(mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+    if not contours:
+        return None
+    largest = max(contours, key=cv2.contourArea)
+    if cv2.contourArea(largest) <= min_area:
+        return None
+    pts = largest.reshape(-1, 2)
+    if len(pts) < 3:
+        return None
+    return Polygon(pts)
 
 
 def upscale(poly: Polygon, factor: int) -> Polygon:

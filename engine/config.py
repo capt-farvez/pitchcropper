@@ -45,6 +45,12 @@ class LoggingConfig(_Strict):
     progress_every: int = Field(gt=0, description="Emit a progress record every N inspected frames")
 
 
+class ResilienceConfig(_Strict):
+    max_consecutive_frame_errors: int = Field(
+        gt=0, description="Stop the run when this many inspected frames in a row fail to decode or detect"
+    )
+
+
 class PipelineConfig(_Strict):
     video_path: str = Field(min_length=1)
     confidence_threshold: float = Field(ge=0.0, le=1.0)
@@ -52,6 +58,7 @@ class PipelineConfig(_Strict):
     field_detector: DetectorConfig
     crop_search: CropConfig
     logging: LoggingConfig
+    resilience: ResilienceConfig
 
 
 def load_config(path: str | Path) -> PipelineConfig:

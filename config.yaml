@@ -22,3 +22,6 @@ logging:
   level: INFO           # DEBUG logs every skipped frame and its reason
   format: text          # text for a person at a terminal, json for batch runs and log collectors
   progress_every: 50    # emit a progress record every N inspected frames
+
+resilience:
+  max_consecutive_frame_errors: 10   # a frame that fails to decode or detect is skipped; this many in a row stops the run

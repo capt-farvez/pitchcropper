@@ -25,7 +25,11 @@ running a colour threshold is the mismatch validation exists to catch.
 
 Only fallback: `analysis_fps` above the source rate means inspect every frame.
 
-Part 3 will add which per-frame problems are skipped and which stop the run.
+At run time, exit code 1: video cannot be opened or reports no frame rate; N inspected frames in a row fail
+to decode or the detector raises on them (`resilience.max_consecutive_frame_errors`); any unexpected
+exception, logged with its traceback. Counted, logged and skipped: a single decode failure, a single detector
+exception (WARNING with traceback), a frame with no usable boundary (DEBUG). The prototype's bare `except`
+around polygon derivation is gone; a malformed mask is now a counted frame error, not a silent "no boundary".
 
 ## 3. Performance trade-offs
 

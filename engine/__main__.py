@@ -8,6 +8,7 @@ logic lives here.
 
 Exit codes:
   0  run completed
+  1  run started but could not finish (video unreadable, stream broken, or an unexpected error)
   2  configuration missing, unparsable, or invalid (nothing was run)
 """
 
@@ -20,7 +21,7 @@ from synthetic_generator import generate_synthetic_video
 from engine.analyzer import FieldBoundaryAnalyzer
 from engine.config import load_config
 from engine.detectors import build_detector
-from engine.errors import ConfigError
+from engine.errors import ConfigError, PipelineError
 from engine.logging_setup import configure_logging, new_run_id
 
 log = logging.getLogger("engine.main")
@@ -48,14 +49,23 @@ def main(argv: list[str] | None = None) -> int:
     # the run id is on every json record already; text mode omits it, so name it once here
     log.info("config.loaded", extra={"config_path": args.config, "run": run_id})
 
-    # Generate the input feed if it does not exist locally
-    generate_synthetic_video(config.video_path)
-    log.info("input.ready", extra={"video_path": config.video_path})
+    try:
+        # Generate the input feed if it does not exist locally
+        generate_synthetic_video(config.video_path)
+        log.info("input.ready", extra={"video_path": config.video_path})
 
-    analyzer = FieldBoundaryAnalyzer(config, detector)
-    results = analyzer.process_video(config.video_path)
+        analyzer = FieldBoundaryAnalyzer(config, detector)
+        results = analyzer.process_video(config.video_path)
+    except PipelineError as exc:
+        # a known way for a run to fail: say which, exit 1
+        log.error("run.failed", extra={"reason": type(exc).__name__, "detail": str(exc), "exit_code": 1})
+        return 1
+    except Exception:
+        # an unknown way: keep the traceback, still exit 1, never pass silently
+        log.exception("run.crashed", extra={"exit_code": 1})
+        return 1
 
-    log.info("run.finished", extra={"exit_code": 0, "results": len(results) if results else 0})
+    log.info("run.finished", extra={"exit_code": 0, "results": len(results)})
     return 0
 
 

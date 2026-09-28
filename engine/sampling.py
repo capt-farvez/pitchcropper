@@ -15,6 +15,8 @@ from dataclasses import dataclass
 import cv2
 import numpy as np
 
+from engine.errors import VideoProbeError
+
 
 @dataclass(frozen=True)
 class VideoInfo:
@@ -25,10 +27,10 @@ class VideoInfo:
 
 
 def probe_video(cap: cv2.VideoCapture) -> VideoInfo:
-    """Read stream properties once. Raises ValueError if the source reports no usable frame rate."""
+    """Read stream properties once. Raises VideoProbeError if the source reports no usable frame rate."""
     fps = float(cap.get(cv2.CAP_PROP_FPS))
     if fps <= 0:
-        raise ValueError("video source reports no frame rate; cannot derive a sampling stride")
+        raise VideoProbeError("video source reports no frame rate; cannot derive a sampling stride")
     return VideoInfo(
         fps=fps,
         frame_count=int(cap.get(cv2.CAP_PROP_FRAME_COUNT)),
@@ -44,8 +46,12 @@ def compute_stride(source_fps: float, analysis_fps: float) -> int:
 
 def iter_sampled_frames(
     cap: cv2.VideoCapture, stride: int, max_frames: int | None = None
-) -> Iterator[tuple[int, np.ndarray]]:
-    """Yield (frame_index, frame) for every stride-th frame, stopping at end of stream or max_frames."""
+) -> Iterator[tuple[int, np.ndarray | None]]:
+    """Yield (frame_index, frame) for every stride-th frame, stopping at end of stream or max_frames.
+
+    A frame that was grabbed but could not be decoded is yielded as None so the
+    caller can count it rather than have it vanish.
+    """
     index = 0
     inspected = 0
     while max_frames is None or inspected < max_frames:
@@ -53,7 +59,6 @@ def iter_sampled_frames(
             break
         if index % stride == 0:
             ok, frame = cap.retrieve()
-            if ok:
-                inspected += 1
-                yield index, frame
+            inspected += 1
+            yield index, (frame if ok else None)
         index += 1
