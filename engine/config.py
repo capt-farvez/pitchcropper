@@ -11,15 +11,10 @@ from pathlib import Path
 from typing import Literal
 
 import yaml
-from pydantic import BaseModel, ConfigDict, Field, ValidationError
+from pydantic import Field, ValidationError
 
 from engine.errors import ConfigError
-
-
-class _Strict(BaseModel):
-    """Base for all config sections: unknown keys are an error, not ignored."""
-
-    model_config = ConfigDict(extra="forbid")
+from engine.models import StrictModel as _Strict
 
 
 class DetectorConfig(_Strict):
@@ -54,6 +49,13 @@ class ResilienceConfig(_Strict):
     )
 
 
+class ReportingConfig(_Strict):
+    enabled: bool
+    base_url: str = Field(pattern=r"^https?://\S+$", description="Reporting service root, e.g. http://mock_api:5000")
+    job_id: str = Field(min_length=1, description="Identifier the orchestrator uses for this job")
+    timeout_s: float = Field(gt=0, description="Per-request timeout")
+
+
 class PipelineConfig(_Strict):
     video_path: str = Field(min_length=1)
     output_path: str | None = Field(min_length=1, description="Write the run summary as JSON here; null to skip")
@@ -63,6 +65,7 @@ class PipelineConfig(_Strict):
     crop_search: CropConfig
     logging: LoggingConfig
     resilience: ResilienceConfig
+    reporting: ReportingConfig
 
 
 def load_config(path: str | Path) -> PipelineConfig:
@@ -87,6 +90,20 @@ def load_config(path: str | Path) -> PipelineConfig:
         return PipelineConfig.model_validate(raw)
     except ValidationError as exc:
         raise ConfigError(_format_validation_error(path, exc)) from exc
+
+
+def with_overrides(config: PipelineConfig, **reporting: str) -> PipelineConfig:
+    """Return a copy with reporting fields replaced, re-validated through the same model.
+
+    Used for environment overrides such as MOCK_API_URL, so a bad value from
+    the environment fails exactly like a bad value in the file.
+    """
+    data = config.model_dump()
+    data["reporting"].update(reporting)
+    try:
+        return PipelineConfig.model_validate(data)
+    except ValidationError as exc:
+        raise ConfigError(_format_validation_error(Path("<environment>"), exc)) from exc
 
 
 def _format_validation_error(path: Path, exc: ValidationError) -> str:

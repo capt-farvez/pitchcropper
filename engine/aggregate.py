@@ -11,8 +11,10 @@ from enum import Enum
 from statistics import mean, median
 
 import numpy as np
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import Field
 from shapely.geometry import Polygon
+
+from engine.models import StrictModel
 
 
 class RejectReason(str, Enum):
@@ -23,10 +25,8 @@ class RejectReason(str, Enum):
     TOO_LARGE = "too_large"  # covers more of the frame than a pitch plausibly can
 
 
-class RunSummary(BaseModel):
+class RunSummary(StrictModel):
     """The final output of a run. Also the shape reported to the platform."""
-
-    model_config = ConfigDict(extra="forbid")
 
     frame_count: int = Field(ge=0, description="Frames in the source")
     inspected: int = Field(ge=0, description="Frames actually analysed")
