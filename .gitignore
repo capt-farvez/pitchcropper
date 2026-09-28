@@ -216,3 +216,9 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+
+# Project-specific (from starter)
+*.mp4
+.idea/
+.vscode/
+ASSIGNMENT.md
