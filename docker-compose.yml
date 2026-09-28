@@ -6,6 +6,8 @@ services:
 
   runner:
     build: .
+    volumes:
+      - .:/app
     depends_on:
       - mock_api
     environment:

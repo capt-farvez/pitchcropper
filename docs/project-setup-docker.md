@@ -10,6 +10,17 @@ Starts `mock_api` on `http://localhost:5000` and runs the pipeline in the `runne
 The runner generates the synthetic video itself, processes it, and exits with code 0.
 `mock_api` keeps running.
 
+## Where the video is
+
+The runner writes `synthetic_pitch_feed.mp4` to `/app` inside the container. Since the repo folder is
+mounted at `/app`, the same file appears in the repo root on your machine. It is git-ignored.
+
+To generate the video without running the pipeline:
+
+```bash
+docker compose run --rm --no-deps runner python -c "from synthetic_generator import generate_synthetic_video; generate_synthetic_video()"
+```
+
 ## Check the reporting service
 
 ```
