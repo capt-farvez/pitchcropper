@@ -1,0 +1,17 @@
+# Pipeline configuration. Every key is required and validated at startup.
+# An unknown key, a missing key, or a value out of range stops the run before any video is opened.
+
+video_path: synthetic_pitch_feed.mp4
+target_fps: 30
+confidence_threshold: 0.5
+
+field_detector:
+  type: hsv_mask        # which detector implementation to use
+  sport: football
+  min_area: 1000        # smallest contour area in px^2 accepted as a boundary
+
+crop_search:
+  aspect_ratio: "16:9"
+  padding_px: 20
+
+debug_mode: true

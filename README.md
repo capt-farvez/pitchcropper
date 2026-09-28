@@ -75,6 +75,8 @@ Generates the synthetic feed if missing, then processes it. Details in
 | Path | Purpose |
 |---|---|
 | `engine/` | The pipeline library. `python -m engine` is the entry point. |
+| `config.yaml` | Pipeline settings. Validated at startup; any bad value stops the run with exit code 2. |
+| `tests/` | pytest suite. Run with `pytest -q`. |
 | `synthetic_generator.py` | Produces the synthetic match feed used as input. |
 | `mock_api/` | Stand-in for the platform reporting service. Not modified. |
 | `Dockerfile`, `docker-compose.yml` | Container build for the runner and the mock API. |
