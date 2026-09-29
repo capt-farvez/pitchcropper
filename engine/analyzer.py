@@ -25,15 +25,17 @@ from engine.config import PipelineConfig
 from engine.detectors.base import FieldDetector
 from engine.errors import StreamBrokenError, VideoOpenError
 from engine.geometry import polygon_from_mask, upscale
+from engine.reporting import NullReporter, ProgressReport, Reporter
 from engine.sampling import compute_stride, iter_sampled_frames, probe_video
 
 log = logging.getLogger("engine.analyzer")
 
 
 class FieldBoundaryAnalyzer:
-    def __init__(self, config: PipelineConfig, detector: FieldDetector):
+    def __init__(self, config: PipelineConfig, detector: FieldDetector, reporter: Reporter | None = None):
         self.config = config
         self.detector = detector
+        self.reporter = reporter if reporter is not None else NullReporter(job_id="local", run_id="local")
         self.threshold = config.confidence_threshold
         self.min_area = config.field_detector.min_area
         self.max_coverage = config.field_detector.max_coverage
@@ -110,19 +112,25 @@ class FieldBoundaryAnalyzer:
 
             if agg.inspected % self.progress_every == 0:
                 elapsed = time.perf_counter() - started
+                report = ProgressReport(
+                    job_id=self.reporter.job_id,
+                    run_id=self.reporter.run_id,
+                    frame_index=index,
+                    inspected=agg.inspected,
+                    expected_inspected=expected,
+                    percent=min(100.0, round(100 * agg.inspected / expected, 1)) if expected else None,
+                    valid=agg.valid,
+                    rejected=agg.inspected - agg.valid,
+                )
                 log.info(
                     "run.progress",
                     extra={
-                        "frame_index": index,
-                        "inspected": agg.inspected,
-                        "expected_inspected": expected,
-                        "percent": round(100 * agg.inspected / expected, 1) if expected else None,
-                        "valid": agg.valid,
-                        "rejected": agg.inspected - agg.valid,
+                        **report.model_dump(exclude={"job_id", "run_id", "timestamp"}),
                         "elapsed_s": round(elapsed, 2),
                         "eta_s": round(elapsed / agg.inspected * (expected - agg.inspected), 1) if expected else None,
                     },
                 )
+                self.reporter.progress(report)
 
         summary = agg.summary(info.frame_count)
         elapsed = time.perf_counter() - started

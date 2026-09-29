@@ -28,3 +28,9 @@ logging:
 
 resilience:
   max_consecutive_frame_errors: 10   # a frame that fails to decode or detect is skipped; this many in a row stops the run
+
+reporting:
+  enabled: true
+  base_url: http://localhost:5000    # overridden by the MOCK_API_URL environment variable, e.g. in docker compose
+  job_id: local-dev                  # set by the orchestrator in production
+  timeout_s: 2.0

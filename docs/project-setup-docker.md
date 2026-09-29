@@ -27,7 +27,9 @@ docker compose run --rm --no-deps runner python -c "from synthetic_generator imp
 http://localhost:5000/api/v1/jobs/events
 ```
 
-Returns the events reported so far as JSON. `[]` means none yet.
+Returns the events reported so far as JSON: a `started` and a `completed` or `failed` event per run, the
+last one carrying the run summary. Progress updates go to `/api/v1/jobs/progress` and show in the
+`mock_api` container log.
 Opening `http://localhost:5000/` alone gives a 404, since the service has no root page.
 
 ## Rerun the pipeline without rebuilding
