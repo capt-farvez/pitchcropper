@@ -12,6 +12,9 @@ pytest -q
 Expect `59 passed`. Covers config validation, the detector seam, sampling, geometry, logging, the failure
 policy, aggregation, wire models, the HTTP client, and every exit-code combination.
 
+The same suite runs inside the Docker build as its own stage. A failing test stops `docker compose build`
+before the runner image exists, so a successful build is itself proof the tests passed.
+
 ## Part 1: configuration fails fast
 
 ```bash

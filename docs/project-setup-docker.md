@@ -6,6 +6,9 @@ Requires Docker Desktop. Nothing else needs to be installed.
 docker compose up --build
 ```
 
+The runner image runs the test suite as a build stage. If any test fails, the build stops there and no
+runner image is produced. When the build succeeds, the tests passed.
+
 Starts `mock_api` on `http://localhost:5000` and runs the pipeline in the `runner` container.
 The runner generates the synthetic video itself, processes it, writes `run_summary.json` to the repo root,
 and exits with code 0. `mock_api` keeps running.

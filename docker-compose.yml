@@ -5,7 +5,9 @@ services:
       - "5000:5000"
 
   runner:
-    build: .
+    build:
+      context: .
+      target: runtime   # built only after the test stage in the Dockerfile has passed
     volumes:
       - .:/app
     depends_on:
