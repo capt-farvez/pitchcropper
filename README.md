@@ -1,4 +1,4 @@
-# Automated Pitch Boundary & Camera Crop Engine (Prototype)
+# Automated Pitch Boundary & Camera Crop Engine
 
 ## Setup guides
 
@@ -6,32 +6,42 @@
 |---|---|
 | [Run with Docker](docs/project-setup-docker.md) | You just want it running. One command, nothing to install. |
 | [Run locally with a venv](docs/project-setup-local-venv.md) | You want to edit and run the code directly. |
-| [Assignment brief](ASSIGNMENT.md) | You want the original task this repo answers. |
+| [Decisions](DECISIONS.md) | Assumptions, trade-offs, failure policy, AI disclosure. |
+| [Assignment brief](ASSIGNMENT.md) | The original task this repo answers. |
 
 ## Overview
 
-This repository contains the v0.1 prototype for the automated pitch-boundary and camera-crop initiative. It is a
-computer-vision pipeline designed to ingest multi-camera match video, detect the playing-field boundary in each
-frame, and derive a recommended camera crop layout from that boundary.
+A batch pipeline that takes a match video, detects the playing-field boundary in a sample of its frames,
+and produces one aggregated result for a downstream camera-crop step. It runs unattended in a container,
+logs in a structured form, and reports progress and outcome to the platform over HTTP.
 
-Currently, this is a synchronous, single-file script primarily used by the research team to validate the detection
-approach before it gets built out into a production pipeline.
+It started as a single-file research prototype. That prototype is preserved in the first commit of this
+repository; everything after it is the rework.
 
 ## Technology Stack
 
-- **Language:** Python 3.12+
-- **Field Detection:** Mock segmentation mask (color-threshold placeholder standing in for a real SAM-style model).
-- **Geometry:** Shapely, for polygon derivation and spatial checks.
-- **Video I/O:** OpenCV (`cv2.VideoCapture`).
+- **Language:** Python 3.12 in Docker, 3.11 or newer locally
+- **Field Detection:** Colour-threshold placeholder behind a swappable detector interface
+- **Geometry:** Shapely for polygon derivation and area metrics
+- **Video I/O:** OpenCV
+- **Validation:** Pydantic for configuration, run summary, and wire payloads
+- **Tests:** pytest
 
 ## Features
 
-- **Synthetic Feed Generation:** Generates a dummy match-style video so the script runs standalone with no external
-  assets.
-- **Field-Boundary Detection:** Extracts a mask per frame and derives a boundary polygon from it.
-- **Crop Recommendation Inputs:** The boundary polygons produced here are meant to feed a downstream crop-layout
-  step (not yet implemented in this prototype).
-- **Execution Metrics:** Reports how many frames were processed and how many boundaries were found.
+- **Validated configuration.** Every setting in `config.yaml` is typed and range-checked. A bad value stops
+  the run before any video is opened.
+- **Swappable detector.** The one seam that varies by sport: a detector turns a frame into a field mask.
+  Adding one is a class and a registry line.
+- **Sampled processing.** Only `sampling.analysis_fps` frames per second are analysed; the rest are skipped
+  without detection.
+- **Structured logging.** One line per event, text or JSON, with a run id, progress, ETA, and a final summary.
+- **Failure policy.** Per-frame problems are counted and skipped; repeated ones stop the run; nothing is
+  swallowed. See the exit codes below.
+- **Aggregated result.** Every frame lands in one bucket. Metrics use valid frames only. Written to
+  `run_summary.json`.
+- **Platform reporting.** Progress and lifecycle events posted as validated payloads. A dead reporting
+  service never becomes a pipeline failure.
 
 ## Quick start
 
@@ -42,32 +52,28 @@ All commands run from the repo root.
 Requires Docker Desktop, nothing else.
 
 ```bash
-# Build the runner and mock API containers, then run the pipeline over a generated synthetic feed
 docker compose up --build
 ```
 
-```bash
-# Run the pipeline over a generated synthetic feed
-docker compose run --rm --no-deps runner python -c "from synthetic_generator import generate_synthetic_video; generate_synthetic_video()"
-```
-
-Starts `mock_api` on `http://localhost:5000` and runs the pipeline in the `runner` container over a
-generated synthetic feed. check `http://localhost:5000/api/v1/jobs/events` for the events. Details in [Run with Docker](docs/project-setup-docker.md).
+Builds and starts `mock_api` on `http://localhost:5000`, then runs the pipeline in the `runner` container
+over a synthetic feed it generates itself. The runner exits 0 when done. Open
+`http://localhost:5000/api/v1/jobs/events` to see what it reported. Details in
+[Run with Docker](docs/project-setup-docker.md).
 
 ### Locally with a venv
 
-Requires Python 3.11 or newer.
+Requires Python 3.11 or newer. The pipeline reports to the mock API, so start that first in a second
+terminal, or set `reporting.enabled: false` in `config.yaml`.
 
 ```bash
 python -m venv .venv
 .venv\Scripts\Activate.ps1          # Windows PowerShell
 # source .venv/bin/activate         # macOS / Linux
 pip install -r requirements.txt
-python -c "from synthetic_generator import generate_synthetic_video; generate_synthetic_video()"
 python -m engine
 ```
 
-Generates the synthetic feed if missing, then processes it. Details in
+Generates the synthetic feed if it is missing, then processes it. Details in
 [Run locally with a venv](docs/project-setup-local-venv.md).
 
 ## Repository layout
@@ -75,8 +81,18 @@ Generates the synthetic feed if missing, then processes it. Details in
 | Path | Purpose |
 |---|---|
 | `engine/` | The pipeline library. `python -m engine` is the entry point. |
+| `engine/config.py` | Validated configuration model and loader. |
+| `engine/detectors/` | The detector interface and the colour-threshold implementation. |
+| `engine/sampling.py`, `engine/geometry.py` | Frame sampling; mask to polygon. |
+| `engine/analyzer.py`, `engine/aggregate.py` | The frame loop; bucketing and the run summary. |
+| `engine/reporting/` | Wire models and the HTTP client for the platform. |
 | `config.yaml` | Pipeline settings. Validated at startup; any bad value stops the run with exit code 2. |
 | `tests/` | pytest suite. Run with `pytest -q`. |
+| `synthetic_generator.py` | Produces the synthetic match feed used as input. Not modified. |
+| `mock_api/` | Stand-in for the platform reporting service. Not modified. |
+| `Dockerfile`, `docker-compose.yml` | Container build for the runner and the mock API. |
+| `docs/` | Setup guides. |
+| `DECISIONS.md` | Assumptions, trade-offs, failure policy, AI disclosure. |
 
 ## Exit codes
 
@@ -103,7 +119,3 @@ Skipped frames are advanced with `cap.grab()` and never reach the detector. Meas
 Detection cost now follows the inspected frame count. The remaining per-frame cost is the codec decoding
 skipped frames, which is why a video twice as long still takes about twice as long at the same setting. To
 bound a run outright, set `sampling.max_frames`.
-| `synthetic_generator.py` | Produces the synthetic match feed used as input. |
-| `mock_api/` | Stand-in for the platform reporting service. Not modified. |
-| `Dockerfile`, `docker-compose.yml` | Container build for the runner and the mock API. |
-| `docs/` | Setup guides. |

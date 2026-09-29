@@ -7,8 +7,8 @@ docker compose up --build
 ```
 
 Starts `mock_api` on `http://localhost:5000` and runs the pipeline in the `runner` container.
-The runner generates the synthetic video itself, processes it, and exits with code 0.
-`mock_api` keeps running.
+The runner generates the synthetic video itself, processes it, writes `run_summary.json` to the repo root,
+and exits with code 0. `mock_api` keeps running.
 
 ## Where the video is
 
