@@ -25,6 +25,10 @@ running a colour threshold is the mismatch validation exists to catch.
 
 Only fallback: `analysis_fps` above the source rate means inspect every frame.
 
+The synthetic feed is generated only when nothing exists at `video_path`. The prototype regenerated it on
+every run, which its own comment said it did not do; that cost 15 s per run and would have overwritten a
+real input file.
+
 At run time, exit code 1: video cannot be opened or reports no frame rate; N inspected frames in a row fail
 to decode or the detector raises on them (`resilience.max_consecutive_frame_errors`); any unexpected
 exception, logged with its traceback. Counted, logged and skipped: a single decode failure, a single detector
@@ -63,6 +67,10 @@ Synthetic feed, 1280x720 at 30 fps, single run each:
   cost dwarfs the decode.
 - The prototype's `time.sleep` per frame was its largest cost and is gone. Frame bounds and HSV thresholds
   are built once.
+- Reporting to a dead service is the one thing that still costs time: about 12 s per failed request in
+  Docker (three attempts, 2 s timeout each, plus DNS failure), so roughly a minute before the client
+  degrades and stops sending progress. The timeout and retry counts are config knobs for an orchestrator
+  that wants a faster give-up.
 
 ## 4. AI/LLM disclosure
 

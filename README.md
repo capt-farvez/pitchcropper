@@ -7,7 +7,8 @@
 | [Run with Docker](docs/project-setup-docker.md) | You just want it running. One command, nothing to install. |
 | [Run locally with a venv](docs/project-setup-local-venv.md) | You want to edit and run the code directly. |
 | [Decisions](DECISIONS.md) | Assumptions, trade-offs, failure policy, AI disclosure. |
-| [Assignment brief](ASSIGNMENT.md) | The original task this repo answers. |
+| [Verification](docs/verification.md) | You want to check each part of the assignment yourself. |
+| [Data](docs/data.md) | Where the data comes from, what the outputs mean, privacy and ethics notes. |
 
 ## Overview
 
@@ -91,8 +92,9 @@ Generates the synthetic feed if it is missing, then processes it. Details in
 | `synthetic_generator.py` | Produces the synthetic match feed used as input. Not modified. |
 | `mock_api/` | Stand-in for the platform reporting service. Not modified. |
 | `Dockerfile`, `docker-compose.yml` | Container build for the runner and the mock API. |
-| `docs/` | Setup guides. |
+| `docs/` | Setup guides, verification steps, data notes. |
 | `DECISIONS.md` | Assumptions, trade-offs, failure policy, AI disclosure. |
+| `LICENSE`, `CITATION.cff` | MIT licence and machine-readable citation. |
 
 ## Exit codes
 
