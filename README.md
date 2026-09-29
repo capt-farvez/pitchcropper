@@ -78,6 +78,15 @@ Generates the synthetic feed if missing, then processes it. Details in
 | `config.yaml` | Pipeline settings. Validated at startup; any bad value stops the run with exit code 2. |
 | `tests/` | pytest suite. Run with `pytest -q`. |
 
+## Exit codes
+
+| Code | Meaning |
+|---|---|
+| 0 | Run completed and every report reached the platform |
+| 1 | Run started but could not finish: video unreadable, stream broken, or an unexpected error |
+| 2 | Configuration missing, unparsable, or invalid. Nothing was run |
+| 3 | Run completed, but one or more reports never reached the platform |
+
 ## Performance
 
 Only every n-th frame is analysed, where n comes from the source frame rate and `sampling.analysis_fps`.

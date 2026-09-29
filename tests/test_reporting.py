@@ -19,6 +19,11 @@ class FakeApi:
 
     def __init__(self):
         self.received: list[tuple[str, dict]] = []
+        self.server = HTTPServer(("127.0.0.1", 0), self._make_handler())
+        self.url = f"http://127.0.0.1:{self.server.server_port}"
+        threading.Thread(target=self.server.serve_forever, daemon=True).start()
+
+    def _make_handler(self):
         outer = self
 
         class Handler(BaseHTTPRequestHandler):
@@ -32,9 +37,7 @@ class FakeApi:
             def log_message(self, *args):
                 pass
 
-        self.server = HTTPServer(("127.0.0.1", 0), Handler)
-        self.url = f"http://127.0.0.1:{self.server.server_port}"
-        threading.Thread(target=self.server.serve_forever, daemon=True).start()
+        return Handler
 
     def close(self):
         self.server.shutdown()
@@ -91,7 +94,7 @@ def test_full_run_reports_started_progress_and_completed(api, tmp_path, make_vid
         "video_path": video,
         "sampling": {"analysis_fps": 30, "max_frames": None, "downscale": 1},
         "logging": {"level": "INFO", "format": "json", "progress_every": 20},
-        "reporting": {"enabled": True, "base_url": api.url, "job_id": "job-42", "timeout_s": 1.0},
+        "reporting": {**VALID_CONFIG["reporting"], "enabled": True, "base_url": api.url, "job_id": "job-42"},
     }
     cfg_path = tmp_path / "config.yaml"
     cfg_path.write_text(yaml.safe_dump(data), encoding="utf-8")

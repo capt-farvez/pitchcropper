@@ -38,6 +38,13 @@ polygon of median area. With no valid frames the statistics are null, not zero. 
 boundary that fills more of the frame than a pitch can; it is 1.0 here because the placeholder detector
 returns the whole frame, and the summary's coverage of 1.0 is the number that tells an operator so.
 
+Reporting is never a pipeline failure. A request gets bounded retries with backoff; one that still fails is
+counted and logged as a WARNING, and the run continues. After N failures in a row the client stops sending
+progress, so a dead service cannot cost a timeout per report, but the start and end events are always
+attempted because the outcome is what the orchestrator most needs. Exit codes keep the two apart: a pipeline
+failure is 1 whatever reporting did; a run that finished but could not deliver every report is 3, never 1
+and never 0. Its summary is still in the log and the output file.
+
 ## 3. Performance trade-offs
 
 Synthetic feed, 1280x720 at 30 fps, single run each:

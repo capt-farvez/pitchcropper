@@ -54,6 +54,11 @@ class ReportingConfig(_Strict):
     base_url: str = Field(pattern=r"^https?://\S+$", description="Reporting service root, e.g. http://mock_api:5000")
     job_id: str = Field(min_length=1, description="Identifier the orchestrator uses for this job")
     timeout_s: float = Field(gt=0, description="Per-request timeout")
+    max_retries: int = Field(ge=0, description="Extra attempts per request before it counts as failed")
+    retry_backoff_s: float = Field(ge=0, description="Wait between attempts, multiplied by the attempt number")
+    max_consecutive_failures: int = Field(
+        gt=0, description="After this many failed requests in a row, stop sending progress; events are still tried"
+    )
 
 
 class PipelineConfig(_Strict):

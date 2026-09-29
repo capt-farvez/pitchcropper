@@ -34,3 +34,6 @@ reporting:
   base_url: http://localhost:5000    # overridden by the MOCK_API_URL environment variable, e.g. in docker compose
   job_id: local-dev                  # set by the orchestrator in production
   timeout_s: 2.0
+  max_retries: 2                     # extra attempts per request before it counts as failed
+  retry_backoff_s: 0.5               # wait between attempts, times the attempt number
+  max_consecutive_failures: 3        # then stop sending progress so a dead service cannot slow the run; start/end events are still tried

@@ -13,7 +13,15 @@ VALID_CONFIG = {
     "crop_search": {"aspect_ratio": "16:9", "padding_px": 20},
     "logging": {"level": "INFO", "format": "json", "progress_every": 50},
     "resilience": {"max_consecutive_frame_errors": 10},
-    "reporting": {"enabled": False, "base_url": "http://localhost:5000", "job_id": "test", "timeout_s": 1.0},
+    "reporting": {
+        "enabled": False,
+        "base_url": "http://localhost:5000",
+        "job_id": "test",
+        "timeout_s": 1.0,
+        "max_retries": 0,
+        "retry_backoff_s": 0.0,
+        "max_consecutive_failures": 3,
+    },
 }
 
 

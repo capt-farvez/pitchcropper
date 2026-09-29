@@ -10,9 +10,14 @@ Environment:
   MOCK_API_URL  overrides reporting.base_url, re-validated like any config value
 
 Exit codes:
-  0  run completed
+  0  run completed and every report reached the platform
   1  run started but could not finish (video unreadable, stream broken, or an unexpected error)
   2  configuration missing, unparsable, or invalid (nothing was run)
+  3  run completed, but one or more reports never reached the platform
+
+A pipeline failure is exit 1 whether or not reporting worked. A reporting
+failure alone is exit 3, never 1: the video work succeeded and its summary is
+in the log and the output file. The two are never folded into each other.
 """
 
 import argparse
@@ -47,7 +52,14 @@ def build_reporter(config: PipelineConfig, run_id: str) -> Reporter:
         job_id=config.reporting.job_id,
         run_id=run_id,
         timeout_s=config.reporting.timeout_s,
+        max_retries=config.reporting.max_retries,
+        retry_backoff_s=config.reporting.retry_backoff_s,
+        max_consecutive_failures=config.reporting.max_consecutive_failures,
     )
+
+
+def reporting_status(reporter: Reporter) -> dict:
+    return {"reports_sent": reporter.sent, "reports_failed": reporter.failures, "reporting_degraded": reporter.degraded}
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -88,19 +100,29 @@ def main(argv: list[str] | None = None) -> int:
             Path(config.output_path).write_text(summary.model_dump_json(indent=2), encoding="utf-8")
             log.info("output.written", extra={"output_path": config.output_path})
     except PipelineError as exc:
-        # a known way for a run to fail: say which, exit 1
-        log.error("run.failed", extra={"reason": type(exc).__name__, "detail": str(exc), "exit_code": 1})
+        # a known way for a run to fail: say which, tell the platform best-effort, exit 1
         reporter.event(JobEvent(**ids, event="failed", detail=f"{type(exc).__name__}: {exc}"))
+        log.error(
+            "run.failed",
+            extra={"reason": type(exc).__name__, "detail": str(exc), "exit_code": 1, **reporting_status(reporter)},
+        )
         return 1
     except Exception as exc:
         # an unknown way: keep the traceback, still exit 1, never pass silently
-        log.exception("run.crashed", extra={"exit_code": 1})
         reporter.event(JobEvent(**ids, event="failed", detail=f"{type(exc).__name__}: {exc}"))
+        log.exception("run.crashed", extra={"exit_code": 1, **reporting_status(reporter)})
         return 1
 
     reporter.event(JobEvent(**ids, event="completed", summary=summary))
-    log.info("run.finished", extra={"exit_code": 0, "valid": summary.valid, "inspected": summary.inspected})
-    return 0
+
+    # the video work succeeded; only now does reporting get a say, and only as exit 3
+    exit_code = 0 if reporter.failures == 0 else 3
+    log.log(
+        logging.INFO if exit_code == 0 else logging.WARNING,
+        "run.finished",
+        extra={"exit_code": exit_code, "valid": summary.valid, "inspected": summary.inspected, **reporting_status(reporter)},
+    )
+    return exit_code
 
 
 if __name__ == "__main__":
